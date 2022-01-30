@@ -12,7 +12,7 @@
 #' @examples
 #' \dontrun{
 #' # Path to PDF file
-#' filepath <- "../inst/extdata/PMID30457984-PMC6245499.txt"
+#' filepath <- "./inst/extdata/PMID32171256-PMC7071725.pdf"
 #'
 #' # Convert into string
 #' article_txt <- rt_read_pdf(filepath)

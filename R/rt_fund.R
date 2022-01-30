@@ -1191,6 +1191,34 @@ get_acknow_2 <- function(article) {
   grep(indicator_regex, article, perl = T)
 }
 
+#' Locate all empty entries to delineate boundaries around a potential match 
+#'
+#' Returns the index with the elements of interest. 
+#'
+#' @param article A List with paragraphs of interest.
+#' @return The index of the paragraph of interest.
+get_delineators <- function(article) {
+  
+  which(article == "")
+  
+}
+
+
+#' Locate beginning and end of statementa of interest 
+#' by identifying the empty entries just before and just after 
+#' 
+#' Returns the vector of indices around the elements of interest. 
+#'
+#' @param target The index of a paragraph of interest
+#' @param comparison_set Vector of entries identified as delineating other entries by get_delineators
+#' @return The index of the paragraph of interest.
+#' 
+find_sequence_of_interest <- function(target, comparison_set){
+  from = comparison_set[which(comparison_set == max(comparison_set[comparison_set < target]))]
+  to = comparison_set[which(comparison_set == min(comparison_set[comparison_set > target]))]
+  
+  return( seq(from+1, to-1) )
+}
 
 #' Avoid disclosures that are in fact COI statements
 #'
@@ -1389,6 +1417,7 @@ obliterate_conflict_1 <- function(article) {
     lapply(.encase) %>%
     paste(collapse = "|") %>%
     gsub("", article, perl = T)
+  # look for patterns and remove them from text
 
 }
 
@@ -1495,11 +1524,11 @@ obliterate_refs_1 <- function(article) {
 #'     future definitions of COI that may differ from the one we used.
 #' @examples
 #' \dontrun{
-#' # Path to PMC XML.
-#' filepath <- "../inst/extdata/00003-PMID26637448-PMC4737611.txt"
+#' # Path to txt file
+#' filename <- "inst/extdata/PMID32171256.txt"
 #'
 #' # Identify and extract meta-data and indicators of transparency.
-#' results_table <- rt_fund(filepath)
+#' results_table <- rt_fund(filename)
 #' }
 #' @export
 rt_fund <- function(filename) {
@@ -1532,15 +1561,20 @@ rt_fund <- function(filename) {
     paragraphs %>%
     purrr::map_chr(gsub, pattern = utf_1, replacement = " ", perl = T) %>%
     purrr::map_chr(gsub, pattern = utf_2, replacement = "",  perl = T) %>%
-    obliterate_fullstop_1() %>%
-    obliterate_conflict_1() %>%
-    obliterate_disclosure_1()  # Adds 30s overhead! TODO: Place elsehwere
+    obliterate_fullstop_1() 
+  
+  # CHANGE here because original rtransparent excluded entries that 
+  # might be false positive statements about disclosing that no funding was received
+  # NOW: err on the side of extracting statements.
+  # %>%
+#    obliterate_conflict_1() %>%
+#    obliterate_disclosure_1()  # Adds 30s overhead! TODO: Place elsehwere
   # paragraphs_pruned <- obliterate_refs_1(paragraphs_pruned)
   # to <- .where_refs_txt(paragraphs_pruned)
   # if (!length(to)) to <- length(paragraphs_pruned)  # TODO: prevent early mention
 
 
-  # Identify sequences of interest
+  # Identify sequences of interest - returns only line numbers
   index_any <- list()
   index_any[['support_1']] <- get_support_1(paragraphs_pruned)
   # index_any[['support_2']] <- get_support_2(paragraphs_pruned)
@@ -1653,9 +1687,19 @@ rt_fund <- function(filename) {
     }
   }
 
-  index <- sort(unique(index))
+  
+#  index <- sort(unique(index))
+  
+  index <- lapply(index, 
+                  find_sequence_of_interest, 
+                  get_delineators(paragraphs_pruned)) %>%
+    unique %>% 
+    unlist %>% 
+    sort
+  
+
   is_funded_pred <- !!length(index)
-  funding_text <- paragraphs[index] %>% paste(collapse = " ")
+  funding_text <- paragraphs[index] %>% paste(collapse = " ")  
 
   index_any %<>% purrr::map(function(x) !!length(x))
   index_fund %<>% purrr::map(function(x) !!length(x))

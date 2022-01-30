@@ -16,7 +16,7 @@
 #' @examples
 #' \dontrun{
 #' # Path to TXT.
-#' filepath <- "../inst/extdata/00003-PMID26637448-PMC4737611.txt"
+#' filepath <- "../inst/extdata/PMID32171256.txt"
 #'
 #' # Identify and extract indicators of transparency.
 #' results_table <- rt_all(filepath)
